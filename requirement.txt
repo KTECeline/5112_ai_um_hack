@@ -6,5 +6,4 @@ hmmlearn
 scikit-learn
 seaborn
 schedule
-time
 torch
