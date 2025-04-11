@@ -1,80 +1,59 @@
-import requests
-import pandas as pd
-import os
-from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+from backtestv2.data_handler import load_data
+from backtestv2.strategy_engine import generate_signals
+from backtestv2.portfolio_simulator import simulate_portfolio
+from backtestv2.risk_manager import apply_risk_management
+from backtestv2.metrics_calculator import calculate_metrics
 
-# ============== 🔐 API KEY =================
-API_KEY = "7zVOILbXdb1kMsf5NTQ2FI5BTVcmJglQaE0EK9YQybxWvHZP"
-headers = {'X-API-Key': API_KEY}
+def run_backtest(file_path, fees=0.06/100, slippage=0.1/100, stop_loss_pct=0.05):
+    # Load data
+    df = load_data(file_path)
 
-# ============== 📅 Parameters =================
-# Set the start time to get data from 4 years ago
-start_time = int((datetime.now() - timedelta(days=4*365)).timestamp() * 1000)  # in milliseconds
+    # Generate trading signals
+    df['position'] = generate_signals(df)
 
-# ============== 🌐 API URLs & Params =================
-binance_ohlc_url = "https://api.binance.com/api/v3/klines"
-coinglass_url = "https://api.datasource.cybotrade.rs/coinglass/futures/openInterest/ohlc-history"
+    # Simulate the portfolio and calculate equity curve
+    df = simulate_portfolio(df, fees, slippage)
 
-params = {
-    'binance': {
-        "symbol": "BTCUSDT",
-        "interval": "1h",
-        "startTime": start_time,
-        "limit": 1000
-    },
-    'coinglass': {
-        "exchange": "Binance",
-        "symbol": "BTCUSDT",
-        "interval": "1h",
-        "start_time": start_time,
-        "limit": "1000"
-    }
-}
+    # Apply risk management techniques (stop-loss, max drawdown)
+    df = apply_risk_management(df, stop_loss_pct)
 
-# ============== 🔁 Helper: Fetch =================
-def fetch_data(url, params, headers=None):
-    try:
-        print(f"⏳ Fetching data from {url}...")
-        response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"❌ Error fetching data: {e}")
-        return None
+    # Calculate key metrics
+    metrics = calculate_metrics(df)
 
-# ============== 🧲 Get Data =================
-print("\n🔄 Fetching data from Binance...")
-binance_data = fetch_data(binance_ohlc_url, params['binance'])
+    # Print metrics
+    print(f"Sharpe Ratio: {metrics['sharpe_ratio']}")
+    print(f"Maximum Drawdown: {metrics['max_drawdown']}")
+    print(f"Trades per Interval: {metrics['trades_per_interval']}")
 
-print("\n🔄 Fetching data from Coinglass...")
-coinglass_data = fetch_data(coinglass_url, params['coinglass'], headers)
+    # Plot equity curve and close price
+    plt.figure(figsize=(12,6))
 
-# Check if data was fetched successfully
-if not binance_data or not coinglass_data:
-    raise ValueError("❌ Error: One or more datasets could not be fetched.")
-print("✅ Data fetched successfully.")
+    plt.subplot(2, 1, 1)
+    plt.plot(df['datetime'], df['equity_curve'], label="Equity Curve", color='green')
+    plt.title('Equity Curve')
+    plt.xlabel('Time')
+    plt.ylabel('Equity')
+    plt.legend()
 
-# ============== 📊 Convert to DataFrames =================
-print("\n🔄 Converting data to DataFrames...")
-binance_df = pd.DataFrame(binance_data, columns=[
-    'open_time', 'open', 'high', 'low', 'close', 'volume',
-    'close_time', 'quote_asset_volume', 'number_of_trades',
-    'taker_buy_base', 'taker_buy_quote', 'ignore'
-])
-binance_df['timestamp'] = pd.to_datetime(binance_df['open_time'], unit='ms')
-binance_df[['open', 'high', 'low', 'close', 'volume']] = binance_df[['open', 'high', 'low', 'close', 'volume']].astype(float)
-binance_df = binance_df[['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+    plt.subplot(2, 1, 2)
+    plt.plot(df['datetime'], df['close'], label="Close Price", color='orange')
+    plt.title('Close Price')
+    plt.xlabel('Time')
+    plt.ylabel('Close Price')
+    plt.legend()
 
-coinglass_df = pd.DataFrame(coinglass_data['data'])
-coinglass_df['timestamp'] = pd.to_datetime(coinglass_df['start_time'], unit='ms')
-coinglass_df = coinglass_df[['timestamp', 'spot_price', 'futures_price']]
+    plt.tight_layout()
+    plt.show()
 
-# ============== 🔗 Merge Data =================
-print("\n🔗 Merging datasets...")
-combined_df = pd.merge(binance_df, coinglass_df, on='timestamp', how='inner')
+if __name__ == "__main__":
+    # Define the path to your data file
+    file_path = 'api-ck/btc_ml_ready.csv'  # Replace with your file path
 
-# ============== 💾 Export =================
-output_file = "historical_crypto_data.csv"
-print(f"\n💾 Exporting data to {output_file}...")
-combined_df.to_csv(output_file, index=False)
-print(f"✅ Data exported to {output_file}")
+    # You can change these parameters as needed, or leave them to use defaults
+    fees = 0.06 / 100  # Example fee
+    slippage = 0.1 / 100  # Example slippage
+    stop_loss_pct = 0.05  # Example stop-loss percentage
+
+    # Run the backtest with the specified parameters
+    run_backtest(file_path, fees, slippage, stop_loss_pct)
