@@ -94,8 +94,8 @@ def run_forward_test(asset):
     bt.plot()
 
     # Save results to CSV
-    bt.results.to_csv(f'{asset}_forwardtest_results.csv')
-    print(f"Results saved to {asset}_forwardtest_results.csv")
+    # bt.results.to_csv(f'{asset}_forwardtest_results.csv')
+    # print(f"Results saved to {asset}_forwardtest_results.csv")
 
 # Run forward tests
 try:
