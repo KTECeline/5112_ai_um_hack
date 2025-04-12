@@ -60,6 +60,7 @@ def run_forward_test(asset):
     bt = SimpleBacktester(
         df,
         generate_signals_func=strategy_func,
+        returns_column='returns',  # Added to match backtester expectation
         entry_threshold=config['entry_threshold'],
         exit_threshold=config['exit_threshold'],
         fee_rate=config['fee_rate'],
@@ -74,9 +75,10 @@ def run_forward_test(asset):
         print(f"{k}: {v:.4f}")
     signal_freq = (bt.results['signal'] != 0).sum() / len(bt.results) * 100
     print(f"Signal Frequency for {asset}: {signal_freq:.2f}%")
-    bt.plot()
-    bt.results.to_csv(f'{asset}_forwardtest_results.csv')
-    print(f"Results saved to {asset}_forwardtest_results.csv")
+    bt.plot_strategy_performance()  # Corrected from bt.plot()
+    bt.plot_drawdowns()  # Drawdown plot
+    # bt.results.to_csv(f'{asset}_forwardtest_results.csv')
+    # print(f"Results saved to {asset}_forwardtest_results.csv")
 
 if __name__ == "__main__":
     asset_to_test = config['asset_to_test']
