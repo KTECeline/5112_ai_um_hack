@@ -7,13 +7,14 @@ import seaborn as sns
 from matplotlib.colors import LinearSegmentedColormap
 
 class SimpleBacktester:
-    def __init__(self, df, generate_signals_func=None, entry_threshold=1.0, exit_threshold=0.0, fee_rate=0.0006, rolling_window=20):
+    def __init__(self, df, generate_signals_func=None, returns_column='returns', entry_threshold=1.0, exit_threshold=0.0, fee_rate=0.0006, rolling_window=20):
         self.df = df.copy()
         self.generate_signals_func = generate_signals_func  # Accept strategy as a parameter
         self.entry_threshold = entry_threshold
         self.exit_threshold = exit_threshold
         self.fee_rate = fee_rate
         self.rolling_window = rolling_window  # Add rolling window parameter
+        self.returns_column = returns_column  # Dynamic returns column name
         self.results = None
 
     def run_backtest(self):
@@ -22,9 +23,10 @@ class SimpleBacktester:
         else:
             raise ValueError("No signal generation function provided.")
         
-        self.df['strategy_returns'] = self.df['position'].shift(1) * self.df['returns']
+        # Dynamically use the returns column
+        self.df['strategy_returns'] = self.df['position'].shift(1) * self.df[self.returns_column]
         self.df['equity'] = (1 + self.df['strategy_returns']).cumprod()
-        self.df['market'] = (1 + self.df['returns']).cumprod()
+        self.df['market'] = (1 + self.df[self.returns_column]).cumprod()
         self.df['trades'] = self.df['position'].diff().abs()
         self.df['fees'] = self.df['trades'] * self.fee_rate
         self.df['net_equity'] = self.df['equity'] * (1 - self.df['fees'].cumsum())
@@ -34,7 +36,7 @@ class SimpleBacktester:
         if self.results is None:
             raise ValueError("Run backtest first.")
         
-        # Calculate strategy returns and drawdown
+        # Dynamically use the returns column
         returns = self.results['strategy_returns'].dropna()
         sharpe = np.sqrt(252) * returns.mean() / returns.std() if returns.std() != 0 else 0
         drawdown = (self.results['net_equity'] / self.results['net_equity'].cummax() - 1)
@@ -84,7 +86,7 @@ class SimpleBacktester:
         plt.grid(True)
         plt.tight_layout()
         plt.show()
-    
+
     # Other plot functions
     def plot_drawdowns(self):
         if self.results is None:
@@ -145,7 +147,10 @@ def plot_sharpe_heatmap(df, strategy_func, entry_thresholds, rolling_windows, ex
     heatmap_df = pd.DataFrame(heatmap_data, columns=["Rolling Window", "Entry Threshold", "Sharpe Ratio"])
     heatmap_pivot = heatmap_df.pivot(index="Rolling Window", columns="Entry Threshold", values="Sharpe Ratio")
 
-    cmap = LinearSegmentedColormap.from_list("red_green", ["red", "green"])
+    # Define a "cool-to-warm" colormap using seaborn's built-in coolwarm palette
+    cmap = sns.diverging_palette(250, 10, as_cmap=True)
+
+    # Plot the heatmap with cool-to-warm colors
     plt.figure(figsize=(12, 8))
     sns.heatmap(heatmap_pivot, annot=True, cmap=cmap, fmt='.2f', cbar_kws={'label': 'Sharpe Ratio'})
     plt.title("Sharpe Ratio Heatmap - Entry Threshold vs Rolling Window")

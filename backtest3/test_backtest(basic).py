@@ -4,13 +4,16 @@ from backtester import SimpleBacktester
 
 # Configuration settings (editable by user)
 config = {
-    "entry_threshold": 2,  # Set the entry threshold for buy/sell signals
+    "entry_threshold": 0.5,  # Set the entry threshold for buy/sell signals
     "exit_threshold": 1,   # Set the exit threshold
-    "fee_rate": 0.0006,      # Fee rate per trade (e.g., 0.06%)
+    "fee_rate": 0.0006,    # Fee rate per trade (e.g., 0.06%)
     "csv_file_path": 'api-ck/btc_ml_ready.csv',  # Path to the historical data CSV
     "datetime_column": 'datetime',  # The column name for datetime in the CSV
-    "fill_missing_values": True,  # Whether to fill missing values in the data
-    "rolling_window": 40      # Set the rolling window for z-score calculation
+    "returns_column": 'returns',   # Set the name of the returns column (e.g., "returns")
+    "fill_missing_values": True,   # Whether to fill missing values in the data
+    "rolling_window": 40,        # Set the rolling window for z-score calculation
+    "slippage": 0.001,
+    "position_size": 1.0
 }
 
 # Load the historical data
@@ -47,13 +50,17 @@ def custom_generate_signals(bt):
 #     self.df['position'] = self.df['signal'].replace(to_replace=0, method='ffill').fillna(0)
 
 # Create the backtester object with customizable strategy
+
 bt = SimpleBacktester(
     df,
     generate_signals_func=custom_generate_signals,  # Pass the user-defined strategy function
-    entry_threshold=config["entry_threshold"],
-    exit_threshold=config["exit_threshold"],
-    fee_rate=config["fee_rate"],
-    rolling_window=config["rolling_window"]  # Pass the rolling_window from config
+    returns_column=config["returns_column"],        # Pass the returns column name from config
+    entry_threshold=config["entry_threshold"],      # Pass entry threshold from config
+    exit_threshold=config["exit_threshold"],        # Pass exit threshold from config
+    fee_rate=config["fee_rate"],                    # Pass fee rate from config
+    rolling_window=config["rolling_window"],         # Pass rolling window from config
+    slippage=config["slippage"],
+    position_size=config["position_size"]
 )
 
 # Run the backtest
