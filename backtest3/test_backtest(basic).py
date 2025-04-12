@@ -12,8 +12,6 @@ config = {
     "returns_column": 'returns',   # Set the name of the returns column (e.g., "returns")
     "fill_missing_values": True,   # Whether to fill missing values in the data
     "rolling_window": 40,        # Set the rolling window for z-score calculation
-    "slippage": 0.001,
-    "position_size": 1.0
 }
 
 # Load the historical data
@@ -59,8 +57,6 @@ bt = SimpleBacktester(
     exit_threshold=config["exit_threshold"],        # Pass exit threshold from config
     fee_rate=config["fee_rate"],                    # Pass fee rate from config
     rolling_window=config["rolling_window"],         # Pass rolling window from config
-    slippage=config["slippage"],
-    position_size=config["position_size"]
 )
 
 # Run the backtest
