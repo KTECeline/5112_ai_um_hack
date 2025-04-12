@@ -62,7 +62,7 @@ class SimpleBacktester:
             "ROI (%)": roi,
         }
 
-    def plot(self):
+    def plot_strategy_performance(self):
         if self.results is None:
             raise ValueError("Run backtest first.")
         
@@ -84,6 +84,41 @@ class SimpleBacktester:
         plt.grid(True)
         plt.tight_layout()
         plt.show()
+    
+    # Other plot functions
+    def plot_drawdowns(self):
+        if self.results is None:
+            raise ValueError("Run backtest first.")
+        
+        df = self.results.copy()
+        equity = df['net_equity']
+        running_max = equity.cummax()
+        drawdown = (equity - running_max) / running_max
+
+        plt.figure(figsize=(14, 5))
+        plt.fill_between(df['Time'], drawdown, color='red', alpha=0.4)
+        plt.title('Drawdown Over Time')
+        plt.xlabel('Time')
+        plt.ylabel('Drawdown (%)')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_signal_distribution(self):
+        if self.results is None:
+            raise ValueError("Run backtest first.")
+        
+        signals = self.results['signal'].value_counts().sort_index()
+        signals.index = ['Sell (-1)', 'Hold (0)', 'Buy (+1)']
+
+        plt.figure(figsize=(6, 4))
+        signals.plot(kind='bar', color=['red', 'gray', 'green'])
+        plt.title('Signal Distribution')
+        plt.ylabel('Count')
+        plt.grid(True, axis='y')
+        plt.tight_layout()
+        plt.show()
+
 
 def plot_sharpe_heatmap(df, strategy_func, entry_thresholds, rolling_windows, exit_threshold=0.0, fee_rate=0.0006):
     heatmap_data = []
